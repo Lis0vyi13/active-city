@@ -1,34 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getPendingBooking, type PendingBooking } from "@/entities/booking";
+import { getPendingBooking } from "@/entities/booking";
 import { AuthModal, useAuth } from "@/features/auth";
 import { CheckoutForm } from "./checkout-form";
 
+function subscribeToClientMount() {
+  return () => {};
+}
+
+function getClientSnapshot() {
+  return true;
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
 export function CheckoutPageContent() {
   const router = useRouter();
-  const { user, loading } = useAuth();
-  const [booking, setBooking] = useState<PendingBooking | null>(null);
-  const [ready, setReady] = useState(false);
+  const { user, syncSession } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
+  const isClient = useSyncExternalStore(
+    subscribeToClientMount,
+    getClientSnapshot,
+    getServerSnapshot
+  );
 
-  useEffect(() => {
-    setBooking(getPendingBooking());
-    setReady(true);
-  }, []);
-
-  if (!ready || loading) {
+  if (!isClient) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  const booking = getPendingBooking();
 
   if (!booking) {
     return (
@@ -64,7 +76,10 @@ export function CheckoutPageContent() {
         <AuthModal
           open={authOpen}
           onOpenChange={setAuthOpen}
-          onSuccess={() => router.refresh()}
+          onSuccess={async () => {
+            await syncSession();
+            router.refresh();
+          }}
         />
       </>
     );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -68,14 +69,12 @@ function FieldLabel({
 }
 
 interface AuthModalFormProps {
-  open: boolean;
   initialTab: AuthTab;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
 
 function AuthModalForm({
-  open,
   initialTab,
   onOpenChange,
   onSuccess,
@@ -84,16 +83,6 @@ function AuthModalForm({
   const [tab, setTab] = useState(initialTab);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [wasOpen, setWasOpen] = useState(open);
-
-  if (open && !wasOpen) {
-    setWasOpen(true);
-    setTab(initialTab);
-    setError(null);
-    setLoading(false);
-  } else if (!open && wasOpen) {
-    setWasOpen(false);
-  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -142,6 +131,8 @@ function AuthModalForm({
         setLoading(false);
         return;
       }
+
+      toast.success("Вітаємо! Ви успішно увійшли.");
     }
 
     setLoading(false);
@@ -278,7 +269,7 @@ export function AuthModal({
           <DialogPopup>
             <DialogClose aria-label="Закрити" />
             <AuthModalForm
-              open={open}
+              key={initialTab}
               initialTab={initialTab}
               onOpenChange={onOpenChange}
               onSuccess={onSuccess}

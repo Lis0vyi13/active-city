@@ -1,16 +1,20 @@
 import { getCourts } from "@/entities/court/api/courts-repository";
+import { parseCatalogSearchParams } from "@/features/court-filter/lib/parse-catalog-search-params";
 import { CourtCatalog } from "@/widgets/court-catalog";
-import { Header } from "@/widgets/header";
+import { PageShell } from "@/widgets/page-shell";
 
-export default async function CatalogPage() {
+interface CatalogPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const { filters, page } = parseCatalogSearchParams(resolvedSearchParams);
   const courts = await getCourts();
 
   return (
-    <div className="min-h-full bg-[#f5f7f9]">
-      <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <CourtCatalog courts={courts} />
-      </main>
-    </div>
+    <PageShell>
+      <CourtCatalog courts={courts} filters={filters} page={page} />
+    </PageShell>
   );
 }

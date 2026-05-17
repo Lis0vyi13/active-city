@@ -50,22 +50,14 @@ export function CourtDetailView({ court }: CourtDetailViewProps) {
             </span>
 
             <div className="min-w-0 space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight wrap-break-word text-foreground sm:text-3xl lg:text-4xl">
+              <h1 className="text-2xl font-bold tracking-tight break-words text-foreground sm:text-3xl lg:text-4xl">
                 {court.name}
               </h1>
               <div className="flex min-w-0 items-start gap-1.5 text-sm text-muted-foreground sm:text-base">
                 <MapPin className="mt-0.5 size-4 shrink-0" />
-                <span className="min-w-0 wrap-break-word">{formatLocation(court)}</span>
+                <span className="min-w-0 break-words">{formatLocation(court)}</span>
               </div>
             </div>
-
-            <Button
-              variant="outline"
-              className="h-10 w-full gap-2 rounded-full border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 sm:w-auto"
-            >
-              <MessageCircle className="size-4 shrink-0" />
-              Написати власнику
-            </Button>
           </div>
 
           <div className="min-w-0 border-t border-border/60 pt-6">
@@ -74,7 +66,7 @@ export function CourtDetailView({ court }: CourtDetailViewProps) {
               {court.amenities.map((amenity) => (
                 <span
                   key={amenity}
-                  className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium wrap-break-word text-foreground sm:px-4 sm:py-2"
+                  className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium break-words text-foreground sm:px-4 sm:py-2"
                 >
                   <Check className="size-3.5 shrink-0 text-primary" />
                   {AMENITY_LABELS[amenity]}

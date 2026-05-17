@@ -1,1 +1,1 @@
-export { BookingsList } from "./ui/bookings-list";
+export { BookingsContent } from "./ui/bookings-content";

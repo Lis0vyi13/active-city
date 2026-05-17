@@ -17,21 +17,6 @@ const TIME_SLOTS = [
 
 export type TimeSlot = (typeof TIME_SLOTS)[number];
 
-const UK_MONTHS_SHORT = [
-  "СІЧ",
-  "ЛЮТ",
-  "БЕР",
-  "КВІ",
-  "ТРА",
-  "ЧЕР",
-  "ЛИП",
-  "СЕР",
-  "ВЕР",
-  "ЖОВ",
-  "ЛИС",
-  "ГРУ",
-] as const;
-
 const UK_MONTHS_FULL = [
   "Січня",
   "Лютого",
@@ -47,32 +32,86 @@ const UK_MONTHS_FULL = [
   "Грудня",
 ] as const;
 
-const UK_WEEKDAYS_SHORT = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"] as const;
+export const MAX_BOOKING_DAYS_AHEAD = 90;
 
-export interface BookingDate {
-  date: Date;
-  label: string;
-  isToday: boolean;
+export const UK_WEEKDAYS_HEADER = [
+  "Пн",
+  "Вт",
+  "Ср",
+  "Чт",
+  "Пт",
+  "Сб",
+  "Нд",
+] as const;
+
+export const UK_MONTHS = [
+  "Січень",
+  "Лютий",
+  "Березень",
+  "Квітень",
+  "Травень",
+  "Червень",
+  "Липень",
+  "Серпень",
+  "Вересень",
+  "Жовтень",
+  "Листопад",
+  "Грудень",
+] as const;
+
+export function startOfDay(date: Date): Date {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
 }
 
-export function getBookingDates(count = 7): BookingDate[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+export function isSameDay(a: Date, b: Date): boolean {
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
 
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() + index);
-    const isToday = index === 0;
-    const weekday = UK_WEEKDAYS_SHORT[date.getDay()];
-    const day = date.getDate();
-    const month = UK_MONTHS_SHORT[date.getMonth()];
+export function getToday(): Date {
+  return startOfDay(new Date());
+}
 
-    return {
-      date,
-      label: isToday ? `Сьогд ${day} ${month}` : `${weekday} ${day}`,
-      isToday,
-    };
-  });
+export function getMaxBookableDate(): Date {
+  const max = getToday();
+  max.setDate(max.getDate() + MAX_BOOKING_DAYS_AHEAD);
+  return max;
+}
+
+export function isDateBookable(date: Date): boolean {
+  const normalized = startOfDay(date);
+  return (
+    normalized >= getToday() && normalized <= getMaxBookableDate()
+  );
+}
+
+export function getMonthLabel(month: Date): string {
+  return `${UK_MONTHS[month.getMonth()]} ${month.getFullYear()}`;
+}
+
+export function getCalendarDays(month: Date): (Date | null)[] {
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstDay = new Date(year, monthIndex, 1);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const startPadding = (firstDay.getDay() + 6) % 7;
+
+  const cells: (Date | null)[] = Array.from({ length: startPadding }, () => null);
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    cells.push(new Date(year, monthIndex, day));
+  }
+
+  return cells;
+}
+
+export function getMonthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+export function addMonths(month: Date, count: number): Date {
+  return new Date(month.getFullYear(), month.getMonth() + count, 1);
 }
 
 export function formatBookingDate(date: Date): string {
@@ -83,17 +122,9 @@ export function getTimeSlots(): TimeSlot[] {
   return [...TIME_SLOTS];
 }
 
-function isSameCalendarDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
 export function isSlotPast(date: Date, slot: TimeSlot): boolean {
-  const today = new Date();
-  if (!isSameCalendarDay(date, today)) {
+  const today = getToday();
+  if (!isSameDay(date, today)) {
     return false;
   }
 

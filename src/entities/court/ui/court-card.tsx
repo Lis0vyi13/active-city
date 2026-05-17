@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/features/auth";
 import { cn } from "@/lib/utils";
 import { SPORT_TYPE_LABELS } from "@/shared/config/sport-types";
 import type { Court } from "../model/types";
@@ -20,8 +24,25 @@ function formatLocation(court: Court): string {
 }
 
 export function CourtCard({ court }: CourtCardProps) {
+  const router = useRouter();
+  const { user, requireAuth } = useAuth();
+  const href = `/courts/${court.id}`;
+
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (user) {
+      return;
+    }
+
+    event.preventDefault();
+    requireAuth(() => router.push(href));
+  };
+
   return (
-    <Link href={`/courts/${court.id}`} className="group block h-full cursor-pointer">
+    <Link
+      href={href}
+      onClick={handleClick}
+      className="group block h-full cursor-pointer"
+    >
       <Card className="h-full overflow-hidden border-0 bg-white p-0 shadow-sm ring-1 ring-border/50 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:ring-primary/25">
         <div className="relative aspect-4/3 overflow-hidden">
           <Image
