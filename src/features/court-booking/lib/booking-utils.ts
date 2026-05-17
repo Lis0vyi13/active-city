@@ -123,6 +123,18 @@ export function getTimeSlots(): TimeSlot[] {
   return [...TIME_SLOTS];
 }
 
+export function isValidTimeSlot(value: string): value is TimeSlot {
+  return TIME_SLOTS.includes(value as TimeSlot);
+}
+
+export function toBookingDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export function isSlotPast(date: Date, slot: TimeSlot): boolean {
   const today = getToday();
   if (!isSameDay(date, today)) {
@@ -136,19 +148,11 @@ export function isSlotPast(date: Date, slot: TimeSlot): boolean {
   return slotStart.getTime() < Date.now();
 }
 
-export function isSlotOccupied(
-  courtId: string,
-  date: Date,
-  slot: TimeSlot
+export function isSlotBooked(
+  slot: TimeSlot,
+  occupiedSlots: ReadonlySet<string>
 ): boolean {
-  const seed = `${courtId}-${date.toDateString()}-${slot}`;
-  let hash = 0;
-
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) % 100;
-  }
-
-  return hash < 28;
+  return occupiedSlots.has(slot);
 }
 
 export function formatSelectedTime(slots: TimeSlot[]): string {
@@ -175,19 +179,19 @@ export function getSlotRange(start: TimeSlot, end: TimeSlot): TimeSlot[] {
 }
 
 export function isSlotSelectable(
-  courtId: string,
   date: Date,
-  slot: TimeSlot
+  slot: TimeSlot,
+  occupiedSlots: ReadonlySet<string>
 ): boolean {
-  return !isSlotPast(date, slot) && !isSlotOccupied(courtId, date, slot);
+  return !isSlotPast(date, slot) && !isSlotBooked(slot, occupiedSlots);
 }
 
 export function isRangeAvailable(
-  courtId: string,
   date: Date,
-  slots: TimeSlot[]
+  slots: TimeSlot[],
+  occupiedSlots: ReadonlySet<string>
 ): boolean {
-  return slots.every((slot) => isSlotSelectable(courtId, date, slot));
+  return slots.every((slot) => isSlotSelectable(date, slot, occupiedSlots));
 }
 
 export function calculateBookingTotal(

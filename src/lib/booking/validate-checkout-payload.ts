@@ -1,5 +1,7 @@
-import { getCourtById } from "@/entities/court/api/courts-repository";
+import { getOccupiedTimeSlotsForCourt } from "@/entities/booking/api/court-occupancy";
 import type { PendingBooking } from "@/entities/booking";
+import { getCourtById } from "@/entities/court/api/courts-repository";
+import { isValidTimeSlot } from "@/features/court-booking/lib/booking-utils";
 
 export interface CheckoutPayload {
   courtId: string;
@@ -47,6 +49,20 @@ export async function validateCheckoutPayload(
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.bookingDate)) {
     return { ok: false, error: "Невірна дата бронювання" };
+  }
+
+  if (!payload.timeSlots.every((slot) => isValidTimeSlot(slot))) {
+    return { ok: false, error: "Невірний час бронювання" };
+  }
+
+  const occupied = await getOccupiedTimeSlotsForCourt(
+    payload.courtId,
+    payload.bookingDate
+  );
+  const occupiedSet = new Set(occupied);
+
+  if (payload.timeSlots.some((slot) => occupiedSet.has(slot))) {
+    return { ok: false, error: "Обраний час уже зайнятий. Оберіть інший слот." };
   }
 
   return {

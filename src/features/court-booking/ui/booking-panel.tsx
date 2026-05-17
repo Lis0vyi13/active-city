@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar } from "lucide-react";
 
@@ -17,10 +17,11 @@ import {
   getTimeSlots,
   getToday,
   isRangeAvailable,
-  isSlotOccupied,
+  isSlotBooked,
   isSlotPast,
   isSlotSelectable,
   startOfDay,
+  toBookingDateString,
   type TimeSlot,
 } from "../lib/booking-utils";
 import { BookingCalendar } from "./booking-calendar";
@@ -34,9 +35,53 @@ export function BookingPanel({ court }: BookingPanelProps) {
   const { user, requireAuth } = useAuth();
   const [selectedDate, setSelectedDate] = useState(getToday);
   const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
+  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(true);
 
   const timeSlots = getTimeSlots();
   const total = calculateBookingTotal(court.pricePerHour, selectedSlots);
+  const bookingDate = toBookingDateString(selectedDate);
+
+  const occupiedSet = useMemo(() => new Set(occupiedSlots), [occupiedSlots]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOccupiedSlots = async () => {
+      setSlotsLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/courts/${court.id}/occupied-slots?date=${bookingDate}`
+        );
+        const data = (await response.json()) as { slots?: string[] };
+
+        if (!cancelled) {
+          const nextOccupied = data.slots ?? [];
+          const nextSet = new Set(nextOccupied);
+
+          setOccupiedSlots(nextOccupied);
+          setSelectedSlots((current) =>
+            current.filter((slot) => isSlotSelectable(selectedDate, slot, nextSet))
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setOccupiedSlots([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSlotsLoading(false);
+        }
+      }
+    };
+
+    void loadOccupiedSlots();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [court.id, bookingDate, selectedDate]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(startOfDay(date));
@@ -44,7 +89,7 @@ export function BookingPanel({ court }: BookingPanelProps) {
   };
 
   const handleSlotClick = (slot: TimeSlot) => {
-    if (!isSlotSelectable(court.id, selectedDate, slot)) {
+    if (!isSlotSelectable(selectedDate, slot, occupiedSet)) {
       return;
     }
 
@@ -61,7 +106,7 @@ export function BookingPanel({ court }: BookingPanelProps) {
     const anchor = selectedSlots[0];
     const range = getSlotRange(anchor, slot);
 
-    if (isRangeAvailable(court.id, selectedDate, range)) {
+    if (isRangeAvailable(selectedDate, range, occupiedSet)) {
       setSelectedSlots(range);
       return;
     }
@@ -73,8 +118,6 @@ export function BookingPanel({ court }: BookingPanelProps) {
     if (selectedSlots.length === 0) {
       return;
     }
-
-    const bookingDate = selectedDate.toISOString().split("T")[0];
 
     savePendingBooking({
       courtId: court.id,
@@ -123,11 +166,16 @@ export function BookingPanel({ court }: BookingPanelProps) {
         </div>
 
         <div className="booking-scroll mb-6 max-h-52 min-w-0 overflow-y-auto pr-1 sm:max-h-60 md:max-h-none md:overflow-visible md:pr-0">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-2 sm:grid-cols-3",
+              slotsLoading && "pointer-events-none opacity-60"
+            )}
+          >
             {timeSlots.map((slot) => {
-              const occupied = isSlotOccupied(court.id, selectedDate, slot);
+              const booked = isSlotBooked(slot, occupiedSet);
               const past = isSlotPast(selectedDate, slot);
-              const unavailable = occupied || past;
+              const unavailable = booked || past;
               const isSelected = selectedSlots.includes(slot);
 
               return (
@@ -178,7 +226,7 @@ export function BookingPanel({ court }: BookingPanelProps) {
         </div>
 
         <Button
-          disabled={selectedSlots.length === 0}
+          disabled={selectedSlots.length === 0 || slotsLoading}
           onClick={goToCheckout}
           className="mt-5 h-11 w-full rounded-xl text-sm sm:text-base"
         >
@@ -187,7 +235,6 @@ export function BookingPanel({ court }: BookingPanelProps) {
             : "Оберіть час для оплати"}
         </Button>
       </div>
-
     </>
   );
 }
