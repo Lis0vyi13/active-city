@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 import { Button } from "@/components/ui/button";
 import type { BookingRecord } from "@/entities/booking";
+import { cn } from "@/lib/utils";
 import {
   formatBookingDate,
   formatBookingTimeRange,
@@ -51,15 +52,22 @@ export function BookingsContent({ user, bookings }: BookingsContentProps) {
   return (
     <div className="flex flex-1 flex-col space-y-4">
       {bookings.map((booking) => (
-        <article
+        <Link
           key={booking.id}
-          className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-border/40 sm:p-6"
+          href={`/courts/${booking.court_id}`}
+          className={cn(
+            "group block rounded-2xl bg-white p-5 shadow-sm ring-1 ring-border/40 transition-all",
+            "hover:-translate-y-0.5 hover:shadow-md hover:ring-primary/25 sm:p-6"
+          )}
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">
-                {booking.court_name}
-              </h2>
+          <article className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2">
+                <h2 className="text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+                  {booking.court_name}
+                </h2>
+                <ChevronRight className="mt-1 size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {formatBookingDate(booking.booking_date)} ·{" "}
                 {formatBookingTimeRange(booking.time_slots)}
@@ -73,8 +81,8 @@ export function BookingsContent({ user, bookings }: BookingsContentProps) {
                 {booking.status === "paid" ? "Оплачено" : booking.status}
               </span>
             </div>
-          </div>
-        </article>
+          </article>
+        </Link>
       ))}
     </div>
   );
